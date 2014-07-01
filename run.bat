@@ -1,0 +1,1 @@
+java -jar dist/Disparity.jar -cf ./config.json

@@ -16,105 +16,47 @@
  */
 package disparity;
 
-import disparity.results.ImageDifferenceResult;
-import io.FileUtils;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
+import disparity.runners.DisparityRunner;
+import java.io.FileNotFoundException;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import semblance.reporters.Report;
+import semblance.reporters.SystemLogReport;
 import semblance.results.IResult;
-import semblance.runners.Runner;
 
 /**
- * Compares two screen-shots and creates a difference image The primary use of
- * this class is for CSS regression testing
+ * Uses the W3C web-service to validate a source file
  *
  * @author balnave
  */
-public class Disparity extends Runner {
-
-    public Disparity(Map config) {
-        super(config);
-    }
+public class Disparity {
 
     /**
-     * Gets the folders with timestamp names
-     *
-     * @param rootDir
-     * @return
+     * @param args the command line arguments
+     * @throws java.io.FileNotFoundException
      */
-    private List<File> getTimestampedDirs(File rootDir) {
-        List<File> allDirs = FileUtils.listFolders(rootDir);
-        //
-        // only allow folders that have the timestamp
-        for (int i = allDirs.size() - 1; i >= 0; i--) {
-            // match folders with correct naming
-            // yyyy-MM-dd HH:mm:ss
-            if (!allDirs.get(i).getName().matches("^\\d{4}-\\d{2}-\\d{2}\\s{1}\\d{2}-\\d{2}-\\d{2}$")) {
-                allDirs.remove(i);
-            }
-        }
-        Collections.sort(allDirs);
-        return allDirs;
-    }
-
-    /**
-     * Gets matching files in the newest and oldest folders
-     *
-     * @param rootDir
-     * @return
-     */
-    private List<File[]> getMatchingFilesByName(File rootDir) {
-        List<File[]> matchingFiles = new ArrayList<File[]>();
-        List<File> matchedDirs = getTimestampedDirs(rootDir);
-        if (!matchedDirs.isEmpty()) {
-            Map<String, File> refFileList01 = FileUtils.listFiles(matchedDirs.get(0).getAbsolutePath());
-            Map<String, File> refFileList02 = FileUtils.listFiles(matchedDirs.get(matchedDirs.size() - 1).getAbsolutePath());
-            for (String key : refFileList01.keySet()) {
-                if (refFileList02.containsKey(key)) {
-                    File[] match = new File[]{refFileList01.get(key), refFileList02.get(key)};
-                    matchingFiles.add(match);
+    public static void main(String[] args) throws FileNotFoundException {
+        String configUrlOrFilePath = "./config.json";
+        int argIndex = 0;
+        for (String arg : args) {
+            if (args.length >= argIndex + 1) {
+                if (arg.equalsIgnoreCase("-cf") || arg.equalsIgnoreCase("-config")) {
+                    configUrlOrFilePath = args[argIndex + 1];
                 }
             }
+            argIndex++;
         }
-        return matchingFiles;
-    }
-
-    @Override
-    /**
-     * Compares images and creates a diff image
-     */
-    public List<IResult> run() throws Exception {
-        ExecutorService execSvc = Executors.newFixedThreadPool(((Number) getConfigValue("threads", 10)).intValue());
-        File dirIn = new File((String) getConfigValue("in"));
-        File dirOut = new File((String) getConfigValue("out"));
-        Number fuzzyness = (Number) getConfigValue("fuzzyness");
-        List<File[]> matchedFiles = getMatchingFilesByName(dirIn);
-        if (!matchedFiles.isEmpty()) {
-            File diffOutDir = new File(dirOut, "diff");
-            diffOutDir.mkdirs();
-            List<SingleImageDiff> queue = new ArrayList<SingleImageDiff>();
-            for (File[] matched : matchedFiles) {
-                queue.add(new SingleImageDiff(matched[0], matched[1], diffOutDir, fuzzyness.intValue()));
-            }
-            List<Future<List<IResult>>> futureResults = execSvc.invokeAll(queue);
-            for (Future<List<IResult>> res : futureResults) {
-                if (res.get() != null) {
-                    results.addAll(res.get());
-                }
-            }
-        } else {
-            results.add(new ImageDifferenceResult(
-                    dirIn.getAbsolutePath(),
-                    false,
-                    String.format("Image Difference Error: %s", "No images to compare!")
-            ));
+        DisparityRunner runner = new DisparityRunner(configUrlOrFilePath);
+        try {
+            List<IResult> results = runner.run();
+            runner.report();
+            //
+            // log the summary of all results
+            Report report = new SystemLogReport(results);
+            report.out();
+        } catch (Exception ex) {
+            Logger.getLogger(Disparity.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return results;
     }
-
 }

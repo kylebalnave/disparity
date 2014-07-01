@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package disparity;
+package disparity.runners;
 
 import disparity.processing.ImageComparator;
 import disparity.results.ImageDifferenceResult;
