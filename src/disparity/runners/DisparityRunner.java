@@ -16,20 +16,13 @@
  */
 package disparity.runners;
 
-import disparity.results.ImageDifferenceResult;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import semblance.io.FileUtils;
-import semblance.results.IResult;
+import semblance.runners.MultiThreadRunner;
 import semblance.runners.Runner;
 
 /**
@@ -38,7 +31,14 @@ import semblance.runners.Runner;
  *
  * @author balnave
  */
-public class DisparityRunner extends Runner {
+public class DisparityRunner extends MultiThreadRunner {
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String[] args) {
+        callRunnerSequence(DisparityRunner.class, args);
+    }
 
     public DisparityRunner(Map config) {
         super(config);
@@ -91,50 +91,25 @@ public class DisparityRunner extends Runner {
         return matchingFiles;
     }
 
-    @Override
     /**
-     * Compares images and creates a diff image
+     * Generate the individual Runner threads
+     * @return 
      */
-    public List<IResult> run() throws Exception {
-        ExecutorService execSvc = Executors.newFixedThreadPool(((Number) getConfigValue("threads", 10)).intValue());
+    @Override
+    protected List<Runner> getRunnerCollection() {
         File dirIn = new File((String) getConfigValue("in"));
         File dirOut = new File((String) getConfigValue("out"));
         Number fuzzyness = (Number) getConfigValue("fuzzyness");
         List<File[]> matchedFiles = getMatchingFilesByName(dirIn);
-        Logger.getLogger(getClass().getName()).log(Level.INFO, "Start!");
+        List<Runner> queue = new ArrayList<Runner>();
         if (!matchedFiles.isEmpty()) {
             File diffOutDir = new File(dirOut, "diff");
             diffOutDir.mkdirs();
-            List<SingleImageDiff> queue = new ArrayList<SingleImageDiff>();
             for (File[] matched : matchedFiles) {
                 queue.add(new SingleImageDiff(matched[0], matched[1], diffOutDir, fuzzyness.intValue()));
             }
-            try {
-                List<Future<List<IResult>>> futureResults = execSvc.invokeAll(queue);
-                for (Future<List<IResult>> res : futureResults) {
-                    if (res.get() != null) {
-                        results.addAll(res.get());
-                    }
-                }
-            } catch (InterruptedException ex) {
-                Logger.getLogger(getClass().getName()).log(Level.WARNING, "Exception in thread", ex);
-            } catch (ExecutionException ex) {
-                Logger.getLogger(getClass().getName()).log(Level.WARNING, "Exception in thread", ex);
-            } finally {
-                if (!execSvc.isShutdown()) {
-                    Logger.getLogger(getClass().getName()).log(Level.INFO, "Shutdown thread pool!");
-                    execSvc.shutdown();
-                }
-            }
-        } else {
-            results.add(new ImageDifferenceResult(
-                    dirIn.getAbsolutePath(),
-                    false,
-                    String.format("Image Difference Error: %s", "No images to compare!")
-            ));
         }
-        Logger.getLogger(getClass().getName()).log(Level.INFO, "End!");
-        return results;
+        return queue;
     }
 
 }

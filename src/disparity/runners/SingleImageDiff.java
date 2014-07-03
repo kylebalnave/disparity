@@ -19,13 +19,14 @@
 package disparity.runners;
 
 import disparity.processing.ImageComparator;
-import disparity.results.ImageDifferenceResult;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import semblance.results.FailResult;
 import semblance.results.IResult;
+import semblance.results.PassResult;
 import semblance.runners.Runner;
 
 
@@ -72,14 +73,13 @@ public class SingleImageDiff extends Runner implements Callable<List<IResult>> {
             msg = String.format("Image Difference Error: %s", ex.getMessage());
             //Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
         } finally {
-            results.add(new ImageDifferenceResult(fileName, passed, msg));
+            if(passed) {
+                results.add(new PassResult(fileName, msg));
+            } else {
+                results.add(new FailResult(fileName, msg));
+            }
         }
         return results;
-    }
-
-    @Override
-    public List<IResult> run() throws Exception, Error {
-        return call();
     }
 
 }
