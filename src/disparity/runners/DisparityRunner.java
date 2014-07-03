@@ -97,9 +97,9 @@ public class DisparityRunner extends MultiThreadRunner {
      */
     @Override
     protected List<Runner> getRunnerCollection() {
-        File dirIn = new File((String) getConfigValue("in"));
-        File dirOut = new File((String) getConfigValue("out"));
-        Number fuzzyness = (Number) getConfigValue("fuzzyness");
+        File dirIn = new File((String) getConfigValue("in", "./"));
+        File dirOut = new File((String) getConfigValue("out", "./"));
+        Number fuzzyness = (Number) getConfigValue("fuzzyness", 0);
         List<File[]> matchedFiles = getMatchingFilesByName(dirIn);
         List<Runner> queue = new ArrayList<Runner>();
         if (!matchedFiles.isEmpty()) {

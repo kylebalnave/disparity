@@ -71,7 +71,6 @@ public class SingleImageDiff extends Runner implements Callable<List<IResult>> {
         } catch (IOException ex) {
             passed = false;
             msg = String.format("Image Difference Error: %s", ex.getMessage());
-            //Logger.getLogger(getClass().getName()).log(Level.SEVERE, null, ex);
         } finally {
             if(passed) {
                 results.add(new PassResult(fileName, msg));

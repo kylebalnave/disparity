@@ -20,13 +20,13 @@ public class ImageComparator {
     protected BufferedImage imageToCompare;
 
     public ImageComparator(String referenceImagePath, String imagePathToCompare) throws IOException {
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, String.format("Compare images '%s' & '%s'", referenceImagePath, imagePathToCompare));
+        Logger.getLogger(getClass().getName()).log(Level.INFO, String.format("Compare images '%s' & '%s'", referenceImagePath, imagePathToCompare));
         referenceImage = ImageIO.read(new File(referenceImagePath));
         imageToCompare = ImageIO.read(new File(imagePathToCompare));
     }
 
     public ImageComparator(File referenceFile, File fileToCompare) throws IOException {
-        Logger.getLogger(this.getClass().getName()).log(Level.INFO, String.format("Compare images '%s' & '%s'", referenceFile.getAbsolutePath(), fileToCompare.getAbsolutePath()));
+        Logger.getLogger(getClass().getName()).log(Level.INFO, String.format("Compare images '%s' & '%s'", referenceFile.getAbsolutePath(), fileToCompare.getAbsolutePath()));
         referenceImage = ImageIO.read(referenceFile);
         imageToCompare = ImageIO.read(fileToCompare);
     }
@@ -35,7 +35,6 @@ public class ImageComparator {
         this.referenceImage = referenceImage;
         this.imageToCompare = imageToCompare;
     }
-    
 
     /**
      * Creates a new image which is a differenced filter representation of the
@@ -43,7 +42,7 @@ public class ImageComparator {
      *
      * @param diffFileOut
      * @param fuzzyness
-     * @return 
+     * @return
      * @throws java.io.IOException
      */
     public long createRGBDiff(File diffFileOut, int fuzzyness) throws IOException {
@@ -71,11 +70,11 @@ public class ImageComparator {
                 raster.setPixel(x, y, rgbArr);
             }
         }
-        long percentPixelDiff = totalPixelCount > 0 ? (100 * pixelDiffCount) / totalPixelCount : 100;
         ImageIO.write(iOutBuff, getPathExtension(diffFileOut.getAbsolutePath()), diffFileOut);
+        long percentPixelDiff = totalPixelCount > 0 ? (100 * pixelDiffCount) / totalPixelCount : 100;
+        Logger.getLogger(getClass().getName()).log(Level.INFO, String.format("Compared images are %s%s different", percentPixelDiff, "%"));
         return percentPixelDiff;
     }
-    
 
     /**
      * Creates an RGB diff image with a 0 fuzzyness threshold
@@ -112,19 +111,20 @@ public class ImageComparator {
     protected int getRGB(BufferedImage img, int x, int y) {
         return img.getRGB(x, y);
     }
-    
+
     /**
      * Gets the path extension
+     *
      * @param fullPath
-     * @return 
+     * @return
      */
     protected String getPathExtension(String fullPath) {
+        String result = "";
         String[] split = fullPath.split("\\.");
-        if(split.length < 2) {
-            return "";
-        } else {
-            return split[split.length - 1];
+        if (split.length >= 2) {
+            result = split[split.length - 1];
         }
+        return result;
     }
 
 }
