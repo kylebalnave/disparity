@@ -1,12 +1,12 @@
 {
-	"threads" : 5,
-	"in": "./screenshots2/",
-	"out": "./screenshots2/",
-	"fuzzyness": 40,
-	"reports": [
-		{
-			"className" : "semblance.reporters.JunitReport",
-			"out" : "./reports/disparity.junit"
-		}
-	]
+    "threads": 5,
+    "in": "./screenshots2/",
+    "out": "./screenshots2/",
+    "fuzzyness": 10,
+    "reports": [
+        {
+            "className": "semblance.reporters.JunitReport",
+            "out": "./reports/disparity.junit"
+        }
+    ]
 }	
