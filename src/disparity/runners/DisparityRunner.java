@@ -49,19 +49,20 @@ public class DisparityRunner extends MultiThreadRunner {
     }
 
     /**
-     * Gets the folders with timestamp names
+     * Gets the folders with timestamp names mtahcing a pattern
      *
      * @param rootDir
+     * @param matchingPattern
      * @return
      */
-    private List<File> getTimestampedDirs(File rootDir) {
+    private List<File> getTimestampedDirs(File rootDir, String matchingPattern) {
         List<File> allDirs = FileUtils.listFolders(rootDir);
         //
         // only allow folders that have the timestamp
         for (int i = allDirs.size() - 1; i >= 0; i--) {
             // match folders with correct naming
             // yyyy-MM-dd HH:mm:ss
-            if (!allDirs.get(i).getName().matches("^\\d{4}-\\d{2}-\\d{2}\\s{1}\\d{2}-\\d{2}-\\d{2}$")) {
+            if (!allDirs.get(i).getName().matches(matchingPattern)) {
                 allDirs.remove(i);
             }
         }
@@ -70,14 +71,23 @@ public class DisparityRunner extends MultiThreadRunner {
     }
 
     /**
+     * Gets the folders with timestamp names
+     *
+     * @param rootDir
+     * @return
+     */
+    private List<File> getTimestampedDirs(File rootDir) {
+        return getTimestampedDirs(rootDir, ".*");
+    }
+
+    /**
      * Gets matching files in the newest and oldest folders
      *
      * @param rootDir
      * @return
      */
-    private List<File[]> getMatchingFilesByName(File rootDir) {
+    private List<File[]> getMatchingFilesByName(List<File> matchedDirs, boolean keepOnlyComparedDirs) {
         List<File[]> matchingFiles = new ArrayList<File[]>();
-        List<File> matchedDirs = getTimestampedDirs(rootDir);
         if (!matchedDirs.isEmpty()) {
             Map<String, File> refFileList01 = FileUtils.listFiles(matchedDirs.get(0).getAbsolutePath());
             Map<String, File> refFileList02 = FileUtils.listFiles(matchedDirs.get(matchedDirs.size() - 1).getAbsolutePath());
@@ -87,20 +97,39 @@ public class DisparityRunner extends MultiThreadRunner {
                     matchingFiles.add(match);
                 }
             }
+            // delete any unused folders
+            System.out.println(String.format("Delete dirs %s", keepOnlyComparedDirs));
+            if (keepOnlyComparedDirs) {
+                for (int index = 0; index < matchedDirs.size(); index++) {
+                    if (index != 0 && index != matchedDirs.size() - 1) {
+                        File dir = matchedDirs.get(index);
+                        File[] entries = dir.listFiles();
+                        for (File child : entries) {
+                            child.delete();
+                        }
+                        boolean success = dir.delete();
+                        System.out.println(String.format("Delete dir %s :: %s", dir.getAbsolutePath(), success));
+                    }
+                }
+            }
         }
         return matchingFiles;
     }
 
     /**
      * Generate the individual Runner threads
-     * @return 
+     *
+     * @return
      */
     @Override
     protected List<Runner> getRunnerCollection() {
         File dirIn = new File((String) getConfigValue("in", "./"));
         File dirOut = new File((String) getConfigValue("out", "./"));
         Number fuzzyness = (Number) getConfigValue("fuzzyness", 0);
-        List<File[]> matchedFiles = getMatchingFilesByName(dirIn);
+        String matchingPattern = (String) getConfigValue("useDirsMatchingPattern", "^\\d{4}-\\d{2}-\\d{2}\\s{1}\\d{2}-\\d{2}-\\d{2}$");
+        List<File> matchedDirs = getTimestampedDirs(dirIn, matchingPattern);
+        Boolean keepOnlyComparedDirs = (Boolean) getConfigValue("keepOnlyComparedDirs", false);
+        List<File[]> matchedFiles = getMatchingFilesByName(matchedDirs, keepOnlyComparedDirs);
         List<Runner> queue = new ArrayList<Runner>();
         if (!matchedFiles.isEmpty()) {
             File diffOutDir = new File(dirOut, "diff");
